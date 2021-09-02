@@ -54,7 +54,7 @@ Examples:
     ./astvuln -h                   # Print help
     ./astvuln print -c             # Run method `print` without color output
     ./astvuln dump -p dir          # Run method `dump` on directory `dir`
-    ./astvuln call -a bytes        # Run method `called` with argument `bytes`
+    ./astvuln call -a bytes        # Run method `call` with argument `bytes`
     ./astvuln foo -a a=1,b=2       # Run method `foo` with arguments a = 1 and b = 2
     ./astvuln file -a methods.txt  # Run multiple methods specified in a file
 ```
