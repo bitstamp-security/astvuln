@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+# Copyright (c) 2021 Bitstamp Ltd
+# This code is licensed under the MIT license. See LICENSE.md for license terms.
+
 # Source file for custom AST search patterns. Patterns we use internally are not
 # included here to avoid revealing internal code structure and coding practices.
 # A few visitors are provided as an example.

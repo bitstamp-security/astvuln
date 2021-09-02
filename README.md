@@ -1,6 +1,8 @@
+# Astvuln
+
 Astvuln is a simple AST scanner which recursively scans a directory, parses each
 file as AST and runs specified method. Some search methods are provided with the
-tool and can be found under `./src/visitors/` in `common.py` and `vulns.py`, but
+tool and can be found under `./src/visitors/` in `common.py` and `custom.py` but
 most methods are not included in the repository. To add a new search method edit
 one of existing files and add a new class. The simplest way is to extend it from
 `AstVisitor` class. Implement query logic using `generic_visit`/`visit_{class}`.
@@ -10,7 +12,7 @@ vulnerable patterns when a new type of bug is discovered in our code. We can use
 such patterns to potentially find new similar bugs. AST code patterns which have
 sufficiently low false positive rate should then be included in SAST automation.
 
-Help:
+## Usage
 
 ```
 Astvuln: Search Python code for AST patterns.
@@ -58,3 +60,7 @@ Examples:
     ./astvuln foo -a a=1,b=2       # Run method `foo` with arguments a = 1 and b = 2
     ./astvuln file -a methods.txt  # Run multiple methods specified in a file
 ```
+
+## License
+
+Astvuln is released under the MIT License.

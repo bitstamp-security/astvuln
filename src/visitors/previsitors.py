@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+# Copyright (c) 2021 Bitstamp Ltd
+# This code is licensed under the MIT license. See LICENSE.md for license terms.
+
 import ast
 
 from .base import Visitor
