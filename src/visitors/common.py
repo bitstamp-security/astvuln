@@ -12,6 +12,7 @@ from .base import Visitor
 # Import astor for pretty dump or fallback to ast (less pretty) dump
 try:
     import astor
+
     dump = astor.dump_tree
 except Exception:
     dump = ast.dump
@@ -19,7 +20,7 @@ except Exception:
 
 # Visitors for individual AST types
 class VisitorType(Visitor):
-    ARGS = ['name']
+    ARGS = ["name"]
     TYPE = None
     PATHS = {}
 
@@ -28,7 +29,10 @@ class VisitorType(Visitor):
 
         for arg in self.ARGS:
             value = getattr(self, arg, None)
-            self.regex.append((arg, re.compile(f'^{value}$') if value else None))
+            self.regex.append((arg, re.compile(f"^{value}$") if value else None))
+
+            if value:
+                self.required.append(re.compile(value.encode()))
 
         self.regex = self.regex[::-1]
 
@@ -41,7 +45,9 @@ class VisitorType(Visitor):
 
     def is_match(self, node):
         if not isinstance(node, self.TYPE):
-            return '', False
+            return "", False
+
+        name = ""
 
         for arg, regex in self.regex:
             name = self.get_name(node, arg)
@@ -80,11 +86,19 @@ class VisitorTypeNested(VisitorType):
         return False
 
 
+class VisitorAssert(VisitorType):
+    ARGS = []
+    NAME = "assert"
+    HELP = "Find all asserts"
+    REQUIRED_KEYWORDS = [b"assert"]
+    TYPE = ast.Assert
+
+
 class VisitorAssign(VisitorTypeNested):
-    NAME = 'assign'
-    HELP = 'Find assignements with matching names'
+    NAME = "assign"
+    HELP = "Find assignements with matching names"
     TYPE = ast.Name
-    PATHS = {'name': ['id']}
+    PATHS = {"name": ["id"]}
 
     def visit_Assign(self, node):
         for target in node.targets:
@@ -98,9 +112,9 @@ class VisitorAssign(VisitorTypeNested):
 
 
 class VisitorCall(VisitorType):
-    ARGS = ['name', 'path']
-    NAME = 'call'
-    HELP = 'Find all function calls with matching name'
+    ARGS = ["name", "path"]
+    NAME = "call"
+    HELP = "Find all function calls with matching name"
     TYPE = ast.Call
 
     def get_name(self, node, name):
@@ -120,80 +134,89 @@ class VisitorCall(VisitorType):
         if not elements:
             return
 
-        if name == 'name':
+        if name == "name":
             return elements[0]
-        elif name == 'path':
+        elif name == "path":
             return elements[1:]
 
 
 class VisitorClass(VisitorType):
-    NAME = 'class'
-    HELP = 'Find all classes with matching name'
+    NAME = "class"
+    HELP = "Find all classes with matching name"
     TYPE = ast.ClassDef
-    PATHS = {'name': ['name']}
+    PATHS = {"name": ["name"]}
+    REQUIRED_KEYWORDS = [b"class"]
 
 
 class VisitorConstant(VisitorType):
-    NAME = 'constant'
-    HELP = 'Find all constants with matching value'
+    NAME = "constant"
+    HELP = "Find all constants with matching value"
     TYPE = ast.Constant
-    PATHS = {'name': ['value']}
+    PATHS = {"name": ["value"]}
 
 
 class VisitorDict(VisitorTypeNested):
-    NAME = 'dict'
-    HELP = 'Find all dicts with matching item constant value'
+    NAME = "dict"
+    HELP = "Find all dicts with matching item constant value"
     TYPE = ast.Constant
-    PATHS = {'name': ['value']}
+    PATHS = {"name": ["value"]}
 
     def visit_Dict(self, node):
         self.visit_elements(node.keys) or self.visit_elements(node.values)
 
 
 class VisitorFunction(VisitorType):
-    NAME = 'function'
-    HELP = 'Find all functions and methods with matching name'
+    NAME = "function"
+    HELP = "Find all functions and methods with matching name"
     TYPE = ast.FunctionDef
-    PATHS = {'name': ['name']}
+    PATHS = {"name": ["name"]}
+    REQUIRED_KEYWORDS = [b"def"]
 
 
 class VisitorName(VisitorType):
-    NAME = 'name'
-    HELP = 'Find all matching names'
+    NAME = "name"
+    HELP = "Find all matching names"
     TYPE = ast.Name
-    PATHS = {'name': ['id']}
+    PATHS = {"name": ["id"]}
 
 
 class VisitorList(VisitorTypeNested):
-    NAME = 'list'
-    HELP = 'Find all lists with matching constant value'
+    NAME = "list"
+    HELP = "Find all lists with matching constant value"
     TYPE = ast.Constant
-    PATHS = {'name': ['value']}
+    PATHS = {"name": ["value"]}
 
     def visit_List(self, node):
         self.visit_elements(node.elts)
 
 
+class VisitorParameter(VisitorType):
+    NAME = "parameter"
+    HELP = "Find function parameters matching names"
+    TYPE = ast.arg
+    PATHS = {"name": ["arg"]}
+
+
 # Debug visitors
 class VisitorDump(Visitor):
-    NAME = 'dump'
-    HELP = 'Dump AST'
+    NAME = "dump"
+    HELP = "Dump AST"
 
     def generic_visit(self, node):
         print(dump(node))
 
 
 class VisitorPrint(Visitor):
-    NAME = 'print'
-    HELP = 'Print node names'
+    NAME = "print"
+    HELP = "Print node names"
 
     def generic_visit(self, node):
-        self.print_result(f'{node.__class__.__name__}', print_source=False)
+        self.print_result(f"{node.__class__.__name__}", print_source=False)
 
 
 class VisitorTest(Visitor):
-    NAME = 'test'
-    HELP = 'Do nothing'
+    NAME = "test"
+    HELP = "Do nothing"
 
     def generic_visit(self, node):
         return

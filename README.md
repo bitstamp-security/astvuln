@@ -29,6 +29,7 @@ Options:
     -s|--skip <value>         Paths to skip
 
 Common methods:
+    assert                    Find all asserts
     assign                    Find assignements with matching names (name)
     call                      Find all function calls with matching name (name, path)
     class                     Find all classes with matching name (name)
@@ -38,6 +39,7 @@ Common methods:
     function                  Find all functions and methods with matching name (name)
     list                      Find all lists with matching constant value (name)
     name                      Find all matching names (name)
+    parameter                 Find function parameters matching names (name)
     print                     Print node names
     test                      Do nothing
 

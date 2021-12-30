@@ -4,6 +4,7 @@
 # This code is licensed under the MIT license. See LICENSE.md for license terms.
 
 import ast
+import re
 
 
 # AST visitor base class
@@ -11,8 +12,8 @@ class Visitor(ast.NodeVisitor):
     ARGS = []
     COMMON = True
     DEFAULTS = {}
-    HELP = ''
-    NAME = ''
+    HELP = ""
+    NAME = ""
     TYPES_CF = [
         ast.ExceptHandler,
         ast.For,
@@ -21,23 +22,23 @@ class Visitor(ast.NodeVisitor):
         ast.While,
         ast.With,
     ]
-    TYPES_FN = [
-        ast.ClassDef,
-        ast.FunctionDef
-    ]
+    TYPES_FN = [ast.ClassDef, ast.FunctionDef]
     PREVISITORS = set()
+    REQUIRED_KEYWORDS = []
 
     def __init__(self, scanner, *args, **kwargs):
         self.state = {
-            'global': {},
-            'fn': [],
-            'cf': [],
-            'line_start': 0,
-            'line_end': 0,
+            "global": {},
+            "fn": [],
+            "cf": [],
+            "line_start": 0,
+            "line_end": 0,
         }
 
+        self.print_method = scanner.print_result
         self.data = scanner.data
         self.log = scanner.log
+        self.required = self.REQUIRED_KEYWORDS
 
         # Set arguments
         for arg in self.ARGS:
@@ -54,37 +55,37 @@ class Visitor(ast.NodeVisitor):
         self.init_visitor()
 
     def init_visitor(self):
-        pass
+        return
 
     def del_tracked(self, *args):
         for key in args:
-            if key in self.state['global']:
-                del self.state['global'][key]
+            if key in self.state["global"]:
+                del self.state["global"][key]
 
-            for scope in ['fn', 'cf']:
+            for scope in ["fn", "cf"]:
                 for item in self.state[scope]:
                     if key in item[1]:
                         del item[1][key]
 
     def generic_visit(self, node):
-        pass
+        return
 
     def get_tracked(self, key):
-        for scope in ['cf', 'fn']:
+        for scope in ["cf", "fn"]:
             for item in self.state[scope]:
                 if key in item[1]:
                     return item[1][key]
 
-        return self.state['global'].get(key, None)
+        return self.state["global"].get(key, None)
 
     def get_tracked_all(self):
         tracked = {
-            'global': self.state['global'],
-            'fn': self.state['fn'][-1][1] if self.state['fn'] else {},
-            'cf': self.state['cf'][-1][1] if self.state['cf'] else {},
+            "global": self.state["global"],
+            "fn": self.state["fn"][-1][1] if self.state["fn"] else {},
+            "cf": self.state["cf"][-1][1] if self.state["cf"] else {},
         }
 
-        for scope in ['fn', 'cf']:
+        for scope in ["fn", "cf"]:
             for item in self.state[scope]:
                 for key, value in item[1].items():
                     tracked[scope][key] = value
@@ -102,19 +103,14 @@ class Visitor(ast.NodeVisitor):
 
     @staticmethod
     def parse_value(value):
-        if value.lower() in ['true', 'false']:
-            return value.lower() == 'true'
+        if value.lower() in ["true", "false"]:
+            return value.lower() == "true"
         elif value.isnumeric():
             return int(value)
 
         return value
 
-    @staticmethod
-    def print_method(state, msg, print_source):
-        # This method is meant to be replaced by scanner print which has the needed context
-        pass
-
-    def print_result(self, msg='', print_source=True):
+    def print_result(self, msg="", print_source=True):
         self.print_method(self.state, msg, print_source)
 
     @classmethod
@@ -124,42 +120,53 @@ class Visitor(ast.NodeVisitor):
         elif isinstance(node, ast.Constant):
             return node.value
         elif isinstance(node, ast.Attribute):
-            return '{}.{}'.format(cls.recursive_attribute_name(node.value), node.attr)
+            return "{}.{}".format(cls.recursive_attribute_name(node.value), node.attr)
 
     def set_tracked(self, key, value):
-        self.state['global'][key] = value
+        self.state["global"][key] = value
 
-        if self.state['fn']:
-            self.state['fn'][-1][1][key] = value
-        if self.state['cf']:
-            self.state['cf'][-1][1][key] = value
+        if self.state["fn"]:
+            self.state["fn"][-1][1][key] = value
+        if self.state["cf"]:
+            self.state["cf"][-1][1][key] = value
 
     def visit(self, node):
         # Update state
         if type(node) in self.TYPES_FN:
-            self.state['fn'].append((node.name, {}))
+            self.state["fn"].append((node.name, {}))
         elif type(node) in self.TYPES_CF:
-            self.state['cf'].append((node.__class__.__name__, {}))
+            self.state["cf"].append((node.__class__.__name__, {}))
 
-        self.state['line_start'] = getattr(node, 'lineno', self.state['line_start'])
-        self.state['line_end'] = getattr(node, 'end_lineno', self.state['line_end'])
+        self.state["line_start"] = getattr(node, "lineno", self.state["line_start"])
+        self.state["line_end"] = getattr(node, "end_lineno", self.state["line_end"])
 
         # Visit node
-        method = 'visit_' + node.__class__.__name__
+        method = "visit_" + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
         visitor(node)
 
         # Recursively visit children
         for field, value in ast.iter_fields(node):
-            if isinstance(value, list):
+            if isinstance(value, ast.AST):
+                self.visit(value)
+            elif isinstance(value, list):
                 for item in value:
                     if isinstance(item, ast.AST):
                         self.visit(item)
-            elif isinstance(value, ast.AST):
-                self.visit(value)
 
         # Update state again
         if type(node) in self.TYPES_FN:
-            self.state['fn'].pop()
+            self.state["fn"].pop()
         elif type(node) in self.TYPES_CF:
-            self.state['cf'].pop()
+            self.state["cf"].pop()
+
+    def skip(self, src):
+        for keyword in self.required:
+            if type(keyword) is bytes:
+                if keyword not in src:
+                    return True
+            elif type(keyword) is re.Pattern:
+                if not keyword.search(src):
+                    return True
+
+        return False

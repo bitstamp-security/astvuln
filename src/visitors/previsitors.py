@@ -11,12 +11,12 @@ from .base import Visitor
 # Base class for visitors used to gather information before "main" visitor runs
 class Previsitor(Visitor):
     def init_visitor(self):
-        if 'names' not in self.data:
-            self.data['names'] = set()
+        if "names" not in self.data:
+            self.data["names"] = set()
 
     def visit(self, node):
         # Visit node
-        method = 'visit_' + node.__class__.__name__
+        method = "visit_" + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
         visitor(node)
 
@@ -32,7 +32,7 @@ class Previsitor(Visitor):
 
 class PrevisitorNames(Previsitor):
     def visit_Name(self, node):
-        self.data['names'].add(node.id)
+        self.data["names"].add(node.id)
 
     def visit_Attribute(self, node):
-        self.data['names'].add(node.attr)
+        self.data["names"].add(node.attr)

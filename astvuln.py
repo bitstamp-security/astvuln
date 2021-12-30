@@ -9,5 +9,5 @@ import sys
 from src.interface import Interface
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     Interface(sys.argv).run()
